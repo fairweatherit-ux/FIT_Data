@@ -31,10 +31,17 @@
       download: true,
       header: true,
       complete: function(results) {
+        const bounds = new google.maps.LatLngBounds();
+
         results.data.forEach(row => {
-          if(row.best_lat && row.best_lon){
-            const lat = parseFloat(row.best_lat);
-            const lng = parseFloat(row.best_lon);
+          // Skip rows without valid lat/lon
+          if (!row.Lat || !row.Lon) return;
+
+          const lat = parseFloat(row.Lat);
+          const lng = parseFloat(row.Lon);
+
+          // Skip rows where parsing fails
+          if (isNaN(lat) || isNaN(lng)) return;
 
             const marker = new google.maps.Marker({
               position: { lat: lat, lng: lng },
@@ -51,8 +58,10 @@
             });
 
             marker.addListener('click', () => infoWindow.open(map, marker));
+            bounds.extend(marker.getPosition());
           }
         });
+        map.fitBounds(bounds);
       }
     });
   }
