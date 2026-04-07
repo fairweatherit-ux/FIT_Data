@@ -8,18 +8,71 @@
     html, body { height: 100%; margin: 0; padding: 0; }
     #map { height: 100%; width: 100%; }
   </style>
+  <!-- Google Maps JS API -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAiVH_h27VOW5ZBTT_4tQ9ichY-MDwCN_c"></script>
+  <!-- PapaParse to read CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 <div id="map"></div>
 <script>
+// Replace with your published Google Sheet CSV URL
+const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSp1AHYZNvhcZwa2V3nTwPHsRMkE14rwYlJB0nebYY7h6GX2ymcnZ-4FrqApZNyv_BnCrCQDy93ZPqf/pub?output=csv";
+
+let map;
+
 function initMap() {
   console.log("initMap running");
-  const map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 45.6286825, lng: -110.92737890625 },
-    zoom: 12
+  map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 12,
+    center: { lat: 45.6286825, lng: -110.92737890625 }
+  });
+
+  Papa.parse(sheetCsvUrl, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      console.log("CSV loaded", results.data);
+      const bounds = new google.maps.LatLngBounds();
+
+      results.data.forEach(row => {
+        // Skip rows without Lat/Lon
+        if (!row.Lat || !row.Lon) return;
+
+        const lat = parseFloat(row.Lat);
+        const lng = parseFloat(row.Lon);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const marker = new google.maps.Marker({
+          position: { lat: lat, lng: lng },
+          map: map,
+          title: row.Timestamp || ''
+        });
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <b>Device:</b> ${row.Device || 'N/A'}<br>
+            <b>Voltage:</b> ${row.Voltage || 'N/A'}<br>
+            <b>Time:</b> ${row.Timestamp || 'N/A'}
+          `
+        });
+
+        marker.addListener('click', () => infoWindow.open(map, marker));
+        bounds.extend(marker.getPosition());
+      });
+
+      // Fit map to all markers
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds);
+      }
+    },
+    error: function(err) {
+      console.error("Error loading CSV:", err);
+    }
   });
 }
+
 window.onload = initMap;
 </script>
 </body>
