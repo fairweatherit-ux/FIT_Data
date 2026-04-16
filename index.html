@@ -51,13 +51,14 @@ const deviceStyles = {
 
   
 function initMap() {
-  console.log("initMap running");
+  console.log("initMap started");
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 12,
     center: { lat: 45.6286825, lng: -110.92737890625 }
   });
 
   Papa.parse(sheetCsvUrl, {
+    console.log("CSV loaded", results.data.length);
     download: true,
     header: true,
     skipEmptyLines: true,
