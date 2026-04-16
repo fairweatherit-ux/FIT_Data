@@ -4,9 +4,15 @@
   <title>Asset Tracker Map</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1.0">
+
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
-    #map { height: 100%; width: 100%; }
+
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
     #controls {
       position: absolute;
       z-index: 5;
@@ -23,35 +29,39 @@
       margin: 5px 0;
     }
   </style>
-  <!-- Google Maps JS API -->
+
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAiVH_h27VOW5ZBTT_4tQ9ichY-MDwCN_c&callback=initMap" async defer></script>
-  <!-- PapaParse to read CSV -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
+
 <body>
-  <div id="controls" style="position:absolute; z-index:5; background:white; padding:10px;">
-  <button onclick="toggleDevice('dev:864622044583702')">Tracker 1</button>
-  <button onclick="toggleDevice('dev:864009068531041')">Tracker 2</button>
+
+<div id="controls">
+  <button onclick="toggleDevice('dev:864622044583702')">Toggle Tracker 1</button>
+  <button onclick="toggleDevice('dev:864009068531041')">Toggle Tracker 2</button>
 </div>
-  
+
 <div id="map"></div>
+
 <script>
 
-const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSp1AHYZNvhcZwa2V3nTwPHsRMkE14rwYlJB0nebYY7h6GX2ymcnZ-4FrqApZNyv_BnCrCQDy93ZPqf/pub?output=csv";
+const sheetCsvUrl =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSp1AHYZNvhcZwa2V3nTwPHsRMkE14rwYlJB0nebYY7h6GX2ymcnZ-4FrqApZNyv_BnCrCQDy93ZPqf/pub?output=csv";
 
 let map;
 
-const devicePaths = {};
-const deviceMarkers = {};
-
+// device styling
 const deviceStyles = {
   "dev:864622044583702": "red",
   "dev:864009068531041": "blue"
 };
 
-function initMap() {
+// storage
+const deviceMarkers = {};
+const devicePaths = {};
+const deviceState = {};
 
-  console.log("initMap started");
+function initMap() {
 
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 12,
@@ -62,9 +72,8 @@ function initMap() {
     download: true,
     header: true,
     skipEmptyLines: true,
-    complete: function(results) {
 
-      console.log("CSV loaded:", results.data.length);
+    complete: function(results) {
 
       const bounds = new google.maps.LatLngBounds();
 
@@ -80,6 +89,15 @@ function initMap() {
         const deviceId = row.Device || "unknown";
         const color = deviceStyles[deviceId] || "green";
 
+        // init state
+        if (!deviceState[deviceId]) {
+          deviceState[deviceId] = {
+            markersVisible: true,
+            pathVisible: true
+          };
+        }
+
+        // marker
         const marker = new google.maps.Marker({
           position: { lat, lng },
           map: map,
@@ -87,6 +105,7 @@ function initMap() {
           icon: `http://maps.google.com/mapfiles/ms/icons/${color}-dot.png`
         });
 
+        // popup
         const infoWindow = new google.maps.InfoWindow({
           content: `
             <b>Device:</b> ${deviceId}<br>
@@ -101,7 +120,7 @@ function initMap() {
           infoWindow.open(map, marker);
         });
 
-        // store marker
+        // store markers
         if (!deviceMarkers[deviceId]) deviceMarkers[deviceId] = [];
         deviceMarkers[deviceId].push(marker);
 
@@ -131,18 +150,26 @@ function initMap() {
   });
 }
 
-// --- toggle devices ---
+// toggle both markers + path
 function toggleDevice(deviceId) {
 
-  const markers = deviceMarkers[deviceId] || [];
-  const path = devicePaths[deviceId];
+  const state = deviceState[deviceId];
 
+  if (!state) return;
+
+  state.markersVisible = !state.markersVisible;
+  state.pathVisible = !state.pathVisible;
+
+  // markers
+  const markers = deviceMarkers[deviceId] || [];
   markers.forEach(m => {
-    m.setMap(m.getMap() ? null : map);
+    m.setMap(state.markersVisible ? map : null);
   });
 
+  // path
+  const path = devicePaths[deviceId];
   if (path) {
-    path.setMap(path.getMap() ? null : map);
+    path.setMap(state.pathVisible ? map : null);
   }
 }
 
