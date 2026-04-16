@@ -21,6 +21,11 @@ const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSp1AHYZNvh
 
 let map;
 
+const deviceStyles = {
+  "dev:864622044583702": "red",
+  "dev:864009068531041": "blue"
+};
+  
 function initMap() {
   console.log("initMap running");
   map = new google.maps.Map(document.getElementById("map"), {
@@ -38,17 +43,20 @@ function initMap() {
 
       results.data.forEach(row => {
         // Skip rows without Lat/Lon
-        if (!row.Lat || !row.Lon) return;
+        if (!row.Lat || !row.Lon || row.Lat === "" || row.Lon === "") return;
 
         const lat = parseFloat(row.Lat);
         const lng = parseFloat(row.Lon);
         if (isNaN(lat) || isNaN(lng)) return;
 
+        const color = deviceStyles[row.Device] || "green";
+
         const marker = new google.maps.Marker({
-          position: { lat: lat, lng: lng },
-          map: map,
-          title: row.Timestamp || ''
-        });
+        position: { lat: lat, lng: lng },
+        map: map,
+        title: row.Device || row.Timestamp || '',
+        icon: `http://maps.google.com/mapfiles/ms/icons/${color}-dot.png`
+      });
 
         const infoWindow = new google.maps.InfoWindow({
           content: `
