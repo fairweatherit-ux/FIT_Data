@@ -36,72 +36,76 @@
   
 <div id="map"></div>
 <script>
-// Replace with your published Google Sheet CSV URL
+
 const sheetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSp1AHYZNvhcZwa2V3nTwPHsRMkE14rwYlJB0nebYY7h6GX2ymcnZ-4FrqApZNyv_BnCrCQDy93ZPqf/pub?output=csv";
 
 let map;
-  
-const devicePaths = {};   // stores polylines per device
-const deviceMarkers = {}; // stores markers per device
-  
+
+const devicePaths = {};
+const deviceMarkers = {};
+
 const deviceStyles = {
   "dev:864622044583702": "red",
   "dev:864009068531041": "blue"
 };
 
-  
 function initMap() {
+
   console.log("initMap started");
+
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 12,
     center: { lat: 45.6286825, lng: -110.92737890625 }
   });
 
   Papa.parse(sheetCsvUrl, {
-    console.log("CSV loaded", results.data.length);
     download: true,
     header: true,
     skipEmptyLines: true,
     complete: function(results) {
-      console.log("CSV loaded", results.data);
+
+      console.log("CSV loaded:", results.data.length);
+
       const bounds = new google.maps.LatLngBounds();
 
       results.data.forEach(row => {
-        // Skip rows without Lat/Lon
-        if (!row.Lat || !row.Lon || row.Lat === "" || row.Lon === "") return;
+
+        if (!row.Lat || !row.Lon) return;
 
         const lat = parseFloat(row.Lat);
         const lng = parseFloat(row.Lon);
+
         if (isNaN(lat) || isNaN(lng)) return;
 
         const deviceId = row.Device || "unknown";
-        const color = deviceStyles[row.Device] || "green";
-        
+        const color = deviceStyles[deviceId] || "green";
+
         const marker = new google.maps.Marker({
-        position: { lat: lat, lng: lng },
-        map: map,
-        title: deviceId,
-        icon: `http://maps.google.com/mapfiles/ms/icons/${color}-dot.png`
-      });
+          position: { lat, lng },
+          map: map,
+          title: deviceId,
+          icon: `http://maps.google.com/mapfiles/ms/icons/${color}-dot.png`
+        });
 
         const infoWindow = new google.maps.InfoWindow({
           content: `
+            <b>Device:</b> ${deviceId}<br>
             <b>Lat:</b> ${lat}<br>
             <b>Lon:</b> ${lng}<br>
             <b>Time:</b> ${row.Timestamp || 'N/A'}<br>
-            <b>Voltage:</b> ${row.Voltage || 'N/A'}<br>
-            <b>Device:</b> ${row.Device || 'N/A'}
+            <b>Voltage:</b> ${row.Voltage || 'N/A'}
           `
         });
 
-        marker.addListener('click', () => infoWindow.open(map, marker));
-        bounds.extend(marker.getPosition());
-      });
-// store marker
+        marker.addListener("click", () => {
+          infoWindow.open(map, marker);
+        });
+
+        // store marker
         if (!deviceMarkers[deviceId]) deviceMarkers[deviceId] = [];
         deviceMarkers[deviceId].push(marker);
 
-        // --- Path (trail) ---
+        // create path
         if (!devicePaths[deviceId]) {
           devicePaths[deviceId] = new google.maps.Polyline({
             path: [],
@@ -113,8 +117,9 @@ function initMap() {
           });
         }
 
-        const path = devicePaths[deviceId].getPath();
-        path.push(new google.maps.LatLng(lat, lng));
+        devicePaths[deviceId]
+          .getPath()
+          .push(new google.maps.LatLng(lat, lng));
 
         bounds.extend(marker.getPosition());
       });
@@ -132,25 +137,13 @@ function toggleDevice(deviceId) {
   const markers = deviceMarkers[deviceId] || [];
   const path = devicePaths[deviceId];
 
-  // toggle markers
   markers.forEach(m => {
-    if (m.getMap()) {
-      m.setMap(null);
-    } else {
-      m.setMap(map);
-    }
+    m.setMap(m.getMap() ? null : map);
   });
 
-  // toggle trail
   if (path) {
-   const isVisible = path.getMap() !== null;
-
-  if (isVisible) {
-  path.setMap(null);
-} else {
-  path.setMap(map);
-}
-}
+    path.setMap(path.getMap() ? null : map);
+  }
 }
 
 window.initMap = initMap;
