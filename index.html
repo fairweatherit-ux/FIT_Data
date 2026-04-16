@@ -7,6 +7,21 @@
   <style>
     html, body { height: 100%; margin: 0; padding: 0; }
     #map { height: 100%; width: 100%; }
+    #controls {
+      position: absolute;
+      z-index: 5;
+      background: white;
+      padding: 10px;
+      margin: 10px;
+      border-radius: 6px;
+      font-family: Arial;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    #controls button {
+      display: block;
+      margin: 5px 0;
+    }
   </style>
   <!-- Google Maps JS API -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAiVH_h27VOW5ZBTT_4tQ9ichY-MDwCN_c"></script>
@@ -14,6 +29,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
+  <div id="controls" style="position:absolute; z-index:5; background:white; padding:10px;">
+  <button onclick="toggleDevice('dev:864622044583702')">Toggle Device 1</button>
+  <button onclick="toggleDevice('dev:864009068531041')">Toggle Device 2</button>
+</div>
+  
 <div id="map"></div>
 <script>
 // Replace with your published Google Sheet CSV URL
@@ -25,6 +45,8 @@ const deviceStyles = {
   "dev:864622044583702": "red",
   "dev:864009068531041": "blue"
 };
+const devicePaths = {};   // stores polylines per device
+const deviceMarkers = {}; // stores markers per device
   
 function initMap() {
   console.log("initMap running");
@@ -49,12 +71,13 @@ function initMap() {
         const lng = parseFloat(row.Lon);
         if (isNaN(lat) || isNaN(lng)) return;
 
+        const deviceId = row.Device || "unknown";
         const color = deviceStyles[row.Device] || "green";
-
+        
         const marker = new google.maps.Marker({
         position: { lat: lat, lng: lng },
         map: map,
-        title: row.Device || row.Timestamp || '',
+        title: deviceId,
         icon: `http://maps.google.com/mapfiles/ms/icons/${color}-dot.png`
       });
 
@@ -71,19 +94,62 @@ function initMap() {
         marker.addListener('click', () => infoWindow.open(map, marker));
         bounds.extend(marker.getPosition());
       });
+// store marker
+        if (!deviceMarkers[deviceId]) deviceMarkers[deviceId] = [];
+        deviceMarkers[deviceId].push(marker);
 
-      // Fit map to all markers
+        // --- Path (trail) ---
+        if (!devicePaths[deviceId]) {
+          devicePaths[deviceId] = new google.maps.Polyline({
+            path: [],
+            geodesic: true,
+            strokeColor: color,
+            strokeOpacity: 1.0,
+            strokeWeight: 3,
+            map: map
+          });
+        }
+
+        const path = devicePaths[deviceId].getPath();
+        path.push(new google.maps.LatLng(lat, lng));
+
+        bounds.extend(marker.getPosition());
+      });
+
       if (!bounds.isEmpty()) {
         map.fitBounds(bounds);
       }
-    },
-    error: function(err) {
-      console.error("Error loading CSV:", err);
     }
   });
 }
 
+// --- toggle devices ---
+function toggleDevice(deviceId) {
+
+  const markers = deviceMarkers[deviceId] || [];
+  const path = devicePaths[deviceId];
+
+  // toggle markers
+  markers.forEach(m => {
+    if (m.getMap()) {
+      m.setMap(null);
+    } else {
+      m.setMap(map);
+    }
+  });
+
+  // toggle trail
+  if (path) {
+    if (path.getMap()) {
+      path.setMap(null);
+    } else {
+      path.setMap(map);
+    }
+  }
+}
+
 window.onload = initMap;
+
 </script>
 </body>
 </html>
