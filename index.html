@@ -15,6 +15,8 @@
 
     #controls {
       position: absolute;
+      top: 60px;
+      left: 10px;
       z-index: 5;
       background: white;
       padding: 10px;
@@ -37,8 +39,11 @@
 <body>
 
 <div id="controls">
-  <button onclick="toggleDevice('dev:864622044583702')">Toggle Tracker 1</button>
-  <button onclick="toggleDevice('dev:864009068531041')">Toggle Tracker 2</button>
+  <button onclick="toggleMarkers('dev:864622044583702')">Tracker 1</button>
+  <button onclick="togglePath('dev:864622044583702')">Tracker 1 (Paths)</button>
+
+  <button onclick="toggleMarkers('dev:864009068531041')">Tracker 2</button>
+  <button onclick="togglePath('dev:864009068531041')">Tracker 2 (Paths)</button>
 </div>
 
 <div id="map"></div>
@@ -151,20 +156,34 @@ function initMap() {
 }
 
 // toggle both markers + path
-function toggleDevice(deviceId) {
+function toggleMarkers(deviceId) {
 
   const state = deviceState[deviceId];
-
   if (!state) return;
 
   state.markersVisible = !state.markersVisible;
-  state.pathVisible = !state.pathVisible;
 
-  // markers
   const markers = deviceMarkers[deviceId] || [];
+
   markers.forEach(m => {
     m.setMap(state.markersVisible ? map : null);
   });
+}
+
+
+function togglePath(deviceId) {
+
+  const state = deviceState[deviceId];
+  if (!state) return;
+
+  state.pathVisible = !state.pathVisible;
+
+  const path = devicePaths[deviceId];
+
+  if (path) {
+    path.setMap(state.pathVisible ? map : null);
+  }
+}
 
   // path
   const path = devicePaths[deviceId];
