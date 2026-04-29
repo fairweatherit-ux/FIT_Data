@@ -98,7 +98,7 @@ function initMap() {
         if (!deviceState[deviceId]) {
           deviceState[deviceId] = {
             markersVisible: true,
-            pathVisible: true
+            pathVisible: false
           };
         }
 
@@ -136,8 +136,8 @@ function initMap() {
             geodesic: true,
             strokeColor: color,
             strokeOpacity: 1.0,
-            strokeWeight: 3,
-            map: map
+            strokeWeight: 2,
+            map: null
           });
         }
 
